@@ -20,6 +20,11 @@ from xgboost.sklearn import XGBClassifier
 
 import shap
 
+""" This Python module, hmbh.py, provides a set of tools for data processing and machine learning tasks. 
+It includes the use of libraries such as sklearn for machine learning algorithms and model evaluation, xgboost for gradient boosting framework, 
+and shap for model interpretation.
+"""
+
 
 def create_dataset(path: str, folders: List[str], mets: List[str], cols: List[str]) -> pl.DataFrame:
 
