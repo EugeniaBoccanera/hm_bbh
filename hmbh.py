@@ -153,6 +153,130 @@ def get_label_ngen(df: pl.DataFrame) -> pl.DataFrame:
     return df
 
 
+def data_preprocessing(df: pl.DataFrame, n_sample: Union[int, bool], label: str, test_size: float, balanced_label: bool=True, random_state: int=42) -> Tuple[pd.DataFrame, pd.DataFrame, npt.NDArray, npt.NDArray, npt.NDArray, npt.NDArray]:
+    
+    """
+    Function that takes in input a `polars` DataFrame and returns the preprocessed data for the ML model.
+
+    Parameters
+    ----------
+    df : pl.DataFrame
+        Input `polars` DataFrame, that will be converted into a `pandas` DataFrame
+    
+    n_samples : int or None
+        Number of samples to select. If None all the dataset is used
+        
+    label : str
+        Column name of the label to use
+        
+    test_size : float
+        Test size for the train/test split
+        
+    balanced_label : if True, the label will be balanced. Default is True
+    
+    random_state : int
+        Random state for reproducibility
+    
+    Return
+    -------
+    Returns a tuple with the preprocessed data: X, y, X_train, y_train, X_test, y_test
+    
+    """
+
+    df =  df.to_pandas()
+
+    if balanced_label == True:
+
+        if len(df[label].unique()) == 2:
+
+            label_counts = df[label].value_counts()
+        
+            # Separate majority and minority classes
+            df_majority = df[df[label]==label_counts.idxmax()]
+            df_minority = df[df[label]==label_counts.idxmin()]
+
+            # Downsample majority class
+            df_majority_downsampled = resample(df_majority, 
+                                            replace=False,    # sample without replacement
+                                            n_samples=df_minority.shape[0],     # to match minority class
+                                            random_state=random_state) # reproducible results
+            
+            # Combine minority class with downsampled majority class
+            df_balanced = pd.concat([df_majority_downsampled, df_minority])
+
+        else: 
+
+            label_counts = df[label].value_counts()
+
+            df_majority = df[df[label]==label_counts.idxmax()]
+            df_minority = df[df[label]==label_counts.idxmin()]
+            df_middle = df[(df[label] != label_counts.idxmax()) & (df[label] != label_counts.idxmin())]
+
+            # Downsample majority class
+            df_majority_downsampled = resample(df_majority, 
+                                            replace=False,    # sample without replacement
+                                            n_samples=df_minority.shape[0],     # to match minority class
+                                            random_state=random_state) # reproducible results
+            
+            df_middle_downsampled = resample(df_middle,
+                                            replace=False,
+                                            n_samples=df_minority.shape[0],
+                                            random_state=random_state)
+
+            # Combine minority class with downsampled majority class
+            df_balanced = pd.concat([df_majority_downsampled, df_middle_downsampled, df_minority])
+
+        # Display new class counts
+        print('Label count before balancing:\n', df[label].value_counts(), '\n')
+        print('Label count after balancing:\n', df_balanced[label].value_counts())
+        
+        if n_sample == None:
+            
+            df_sample = df_balanced
+         
+        else:
+
+            # Now let's select n shuffled samples
+            df_sample = df_balanced.sample(n=n_sample, random_state=random_state)
+
+    else:
+        
+        if n_sample == None:
+            
+            df_sample = df
+            
+        else:
+            
+            df_sample = df.sample(n=n_sample, random_state=random_state)
+
+    # Define features and target
+    X = df_sample.drop(['ID', 'label', 'n_gen', 'label_ngen'], axis=1)
+    y = df_sample[label]
+
+    print()
+    print('Label count after sampling:\n', y.value_counts())
+
+    # Split the data into training and testing sets
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, random_state=random_state)
+
+    print()
+    print('X_train shape:', X_train.shape)
+    print('X_test shape:', X_test.shape)
+    print('y_train shape:', y_train.shape)
+    print('y_test shape:', y_test.shape)
+
+    # Initialize the scaler
+    scaler = MinMaxScaler()
+
+    # Fit the scaler to the training data and transform
+    X_train = scaler.fit_transform(X_train)
+
+    # Transform the test data
+    X_test = scaler.transform(X_test)
+
+    return X, y, X_train, y_train, X_test, y_test
+
+
 def simple_RF(X_train: npt.NDArray, y_train: npt.NDArray, X_test: npt.NDArray, random_state: int=42) -> Tuple[RandomForestClassifier, npt.NDArray]:
     
     """
