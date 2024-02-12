@@ -314,7 +314,7 @@ def simple_RF(X_train: npt.NDArray, y_train: npt.NDArray, X_test: npt.NDArray, r
     return RF, y_pred
 
 
-def model_evaluation(model: Union[RandomForestClassifier, XGBClassifier], X: pd.DataFrame, y: pd.DataFrame, X_train: npt.NDArray, y_train: npt.NDArray, X_test: npt.NDArray, y_test: npt.NDArray, y_pred: npt.NDArray) -> None:
+def model_evaluation(model: Union[RandomForestClassifier, XGBClassifier], X: pd.DataFrame, y: pd.DataFrame, X_train: npt.NDArray, y_train: npt.NDArray, X_test: npt.NDArray, y_test: npt.NDArray, y_pred: npt.NDArray, bar_plot: bool=False) -> None:
     
     """
     Function that takes in input the model and the preprocessed data and returns the evaluation of the model: Training Score, Test Score, Confusion Matrix and Feature Importances.
@@ -344,6 +344,9 @@ def model_evaluation(model: Union[RandomForestClassifier, XGBClassifier], X: pd.
 
     y_pred : npt.NDArray
         Model predictions
+
+    bar_plot : bool. Default is False
+        If True, the function will return the bar plot of the feature importances
     
     Return
     -------
@@ -373,12 +376,14 @@ def model_evaluation(model: Union[RandomForestClassifier, XGBClassifier], X: pd.
     plt.title('Confusion Matrix')
     plt.show()
 
-    # Make the bar plot from f_importances
-    fig = plt.figure(figsize=(12, 4))
-    ax = fig.add_subplot(111) 
-    f_importances.plot(x='Features', y='Importance', kind='bar', rot=45, fontsize=10, ax=ax, color='tab:blue', edgecolor='black', alpha=0.8)#, yerr=std)
-    plt.title('Built-in Feature Importances')
-    plt.show()
+    if bar_plot == True:
+
+        # Make the bar plot from f_importances
+        fig = plt.figure(figsize=(12, 4))
+        ax = fig.add_subplot(111) 
+        f_importances.plot(x='Features', y='Importance', kind='bar', rot=45, fontsize=10, ax=ax, color='tab:blue', edgecolor='black', alpha=0.8)#, yerr=std)
+        plt.title('Built-in Feature Importances')
+        plt.show()
 
 
 def gridsearch_RF(param_grid: dict, cv: int, X_train: npt.NDArray, y_train: npt.NDArray, X_test: npt.NDArray, n_jobs: int, random_state: int=42, verbose: int=2) -> Tuple[RandomForestClassifier, npt.NDArray, dict]:
